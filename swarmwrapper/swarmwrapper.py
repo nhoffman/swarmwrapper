@@ -147,7 +147,11 @@ def check_swarm_version(min_version):
                  'found swarm version {}'.format(min_version, version))
 
 
-def main(arguments):
+def main(arguments=None):
+
+    if arguments is None:
+        arguments = sys.argv[1:]
+
     parser = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter)

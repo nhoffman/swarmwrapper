@@ -18,9 +18,9 @@ setup(
     url='https://github.com/nhoffman/swarmwrapper',
     name='swarmwrapper',
     packages=find_packages(),
-    package_dir={'swarmwrapper': '.'},
+    package_dir={'swarmwrapper': 'swarmwrapper'},
     package_data={'swarmwrapper': ['data/ver']},
-    entry_points={'console_scripts': ['swarmwrapper = swarmwrapper:main']},
+    entry_points={'console_scripts': ['swarmwrapper = swarmwrapper.swarmwrapper:main']},
     version=__version__,
     classifiers=[
         'Development Status :: 3 - Alpha',
