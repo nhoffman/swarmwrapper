@@ -46,7 +46,10 @@ Given these three inputs, a taxon table can be constructed as follows
   join assignments using(seed)
   group by specimen, taxon;
 
+Command line options
+====================
 
+::
 """
 
 from __future__ import print_function

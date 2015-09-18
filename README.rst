@@ -14,9 +14,9 @@ names are unannotated as well. Input files may be compressed
 
 The output file specified by -a/--abundances contains three columns:
 
- 1. the name of a seed sequence representing cluster C;
- 2. the name of a sequence included in cluster C representing some specimen S;
- 3. the number of reads representing cluster C originating from specimen S.
+1. the name of a seed sequence representing cluster C;
+2. the name of a sequence included in cluster C representing some specimen S;
+3. the number of reads representing cluster C originating from specimen S.
 
 Let's name these columns ('seed', 'read_from_S', and 'abundance'). In
 principle, the sum of the values in the column containing abundances
@@ -35,10 +35,10 @@ a table describing taxon abundance by specimen.
 
 Consider these two other tables:
 
- * 'specimen_map', a table provided as input to this script with
-   columns ('read_from_S', 'specimen')
- * 'assignments', a table assigning clusters to taxa with columns
-   ('seed', 'taxon').
+* 'specimen_map', a table provided as input to this script with
+  columns ('read_from_S', 'specimen')
+* 'assignments', a table assigning clusters to taxa with columns
+  ('seed', 'taxon').
 
 Given these three inputs, a taxon table can be constructed as follows
 (using SQL to illustrate the relations)::
@@ -48,30 +48,23 @@ Given these three inputs, a taxon table can be constructed as follows
   join assignments using(seed)
   group by specimen, taxon;
 
+Command line options
+====================
+
 ::
 
   positional arguments:
-    infile                Input file containing trimmed reads in fasta format
+    {dereplicate,cluster}
+      dereplicate         Perform strict dereplication.
+      cluster             Cluster dereplicated reads.
 
   optional arguments:
     -h, --help            show this help message and exit
-    -s SPECIMEN_MAP, --specimen-map SPECIMEN_MAP
-			  headless csv file with columns (read, specimen)
-    -d DIFFERENCES, --differences DIFFERENCES
-    -k, --keep-abundances
-			  retain abundance annotation in sequence names
-			  (-w/--seeds only)
-    --min-mass N          drop OTUs with total mass less than N
-    -t THREADS, --threads THREADS
-    --version             show program's version number and exit
-
-  output files:
-    -w SEEDS, --seeds SEEDS
-			  Output fasta file containing OTU representatives
-    -a ABUNDANCES, --abundances ABUNDANCES
-			  csv file providing abundances by specimen
-    --dropped DROPPED     file containing sequences dropped due to ambiguities
-			  or cluster size
+    -v                    increase verbosity of screen output (eg, -v is
+			  verbose, -vv more so)
+    -q, --quiet           suppress screen output from pip commands
+    -V, --version         Print the version number and exit
     --tmpdir TMPDIR       optional directory name for creating temporary
 			  intermediate files (created in system temp file and
 			  discarded by default)
+    -t N, --threads N     number of threads [4]
