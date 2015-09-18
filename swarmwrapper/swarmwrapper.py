@@ -112,10 +112,13 @@ class Opener(object):
             return sys.stdin if 'r' in self._mode else sys.stdout
         elif string.endswith('.bz2'):
             if bz2 is None:
-                raise ImportError('could not import bz2 module - was python built with libbz2?')
-            return bz2.BZ2File(string, self._mode, self._bufsize)
+                raise ImportError(
+                    'could not import bz2 module - was python built with libbz2?')
+            return bz2.BZ2File(
+                string, self._mode, self._bufsize)
         elif string.endswith('.gz'):
-            return gzip.open(string, self._mode, self._bufsize)
+            return gzip.open(
+                string, self._mode, self._bufsize)
         else:
             return open(string, self._mode, self._bufsize)
 
@@ -293,7 +296,7 @@ class Cluster(Subparser):
              ntf(prefix='seeds-', suffix='.fasta', dir=args.tmpdir) as seeds:
 
             cluster(args.seqs, seeds, clusters, differences=args.differences,
-                    threads=args.threads)
+                    threads=args.threads, quiet=args.verbosity <= 1)
 
             grand_total, keep_total = 0.0, 0.0
             for seq, line in zip(fastalite(seeds), clusters):
@@ -365,9 +368,11 @@ class Dereplicate(Subparser):
         if not args.specimen_map:
             log.info('dereplicating {}'.format(args.seqs.name))
             seqs = imap(add_abundance, seqs)
-            with ntf('w', prefix='raw-', suffix='.fasta', dir=args.tmpdir) as raw_reads:
-                write_seqs(raw_reads, seqs)
-                dereplicate(raw_reads, args.seeds, threads=args.threads)
+            with ntf('w', prefix='raw-', suffix='.fasta', dir=args.tmpdir) as raw, \
+                 ntf('rwb', prefix='d0-', suffix='.fasta', dir=args.tmpdir) as d0:
+                write_seqs(raw, seqs)
+                dereplicate(raw, d0, threads=args.threads, quiet=args.verbosity <= 1)
+                args.seeds.write(d0.read())
             return
 
         # identifies specimen of origin (values) for each read (keys)

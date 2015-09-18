@@ -31,7 +31,11 @@ verbose="-v"
 testname=derep1
 if run_test $testname "$@"; then
     outdir=$(setup $testname)
-    ./swarmwrapper.py "$verbose" dereplicate testfiles/seqs.fasta --seeds $outdir/seeds.fasta
+    tmpdir="--tmpdir $outdir/tmp"
+    ./swarmwrapper.py "$verbose" $tmpdir \
+		      dereplicate \
+		      testfiles/seqs.fasta \
+		      --seeds $outdir/seeds.fasta.gz
 fi
 
 testname=derep2
@@ -70,7 +74,7 @@ if run_test $testname "$@"; then
 		      dereplicate \
 		      testfiles/seqs.fasta \
 		      --specimen-map testfiles/seq_info.csv \
-		      --seeds $outdir/d0.fasta.gz
+		      --seeds $outdir/d0.fasta
 
     ./swarmwrapper.py "$verbose" $tmpdir \
 		      cluster \
