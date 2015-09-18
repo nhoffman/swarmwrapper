@@ -46,7 +46,7 @@ Given these three inputs, a taxon table can be constructed as follows
   join assignments using(seed)
   group by specimen, taxon;
 
-::
+
 """
 
 from __future__ import print_function
@@ -161,6 +161,11 @@ def add_abundance(seq, abundance=1):
     return SeqLite('{}_{}'.format(seq.id, abundance), seq.description, seq.seq)
 
 
+def rm_abundance(seq):
+    name, __ = get_abundance(seq.id)
+    return SeqLite(name, seq.description, seq.seq)
+
+
 def get_abundance(name):
     key, abundance = name.rsplit('_', 1)
     return key, int(abundance)
@@ -172,7 +177,7 @@ def fiter_ambiguities(seq):
 
 def write_seqs(fobj, seqs):
     for seq in seqs:
-        fobj.write(as_fasta)
+        fobj.write(as_fasta(seq))
         fobj.flush()
 
 
@@ -180,15 +185,33 @@ def as_fasta(seq):
     return '>{}\n{}\n'.format(seq.id, seq.seq)
 
 
-def dereplicate(infile, outfile, threads=1):
+def dereplicate(infile, seeds, threads=1, quiet=True):
     with open(os.devnull, 'w') as devnull:
         cmd = ['swarm',
-               '--seeds', outfile.name,
+               '--seeds', seeds.name,
                '-o', devnull.name,  # ordinarily to stdout, but we don't want it
                '--differences', '0',
                '-t', str(threads),
                infile.name]
-        subprocess.check_call(cmd, stderr=devnull)
+
+        log.info(' '.join(cmd))
+        subprocess.check_call(cmd, stderr=devnull if quiet else None)
+        seeds.seek(0)
+
+
+def cluster(infile, seeds, clusters, differences=1, threads=1, quiet=True):
+    with open(os.devnull, 'w') as devnull:
+        cmd = ['swarm',
+               '--seeds', seeds.name,
+               '-o', clusters.name,
+               '--differences', str(differences),
+               '-t', str(threads),
+               infile]
+
+        log.info(' '.join(cmd))
+        subprocess.check_call(cmd, stderr=devnull if quiet else None)
+        clusters.seek(0)
+        seeds.seek(0)
 
 
 def ntf(*args, **kwargs):
@@ -224,27 +247,101 @@ class Subparser(object):
         self.add_arguments()
 
 
-class Nothing(Subparser):
+class Cluster(Subparser):
     """
-
-
+    Cluster dereplicated reads.
     """
 
     def add_arguments(self):
         self.subparser.add_argument(
-            'pkg', help="name of a package")
+            'seqs', help="input sequences in fasta format "
+            "(dereplicated and with abundance annotations)")
         self.subparser.add_argument(
-            '--venv', help="Path to a virtualenv")
+            '-m', '--specimen-map', type=Opener('r'), metavar='INFILE',
+            help="csv file with columns (read_name, specimen)")
+        self.subparser.add_argument(
+            '-w', '--seeds', type=Opener('w'), metavar='OUTFILE',
+            help="output seed sequences in fasta format")
+        self.subparser.add_argument(
+            '-a', '--abundances', type=Opener('w'), metavar='OUTFILE',
+            help="csv file providing abundances by specimen")
+        self.subparser.add_argument(
+            '--dropped', type=Opener('w'), metavar='OUTFILE',
+            help="sequences discarded due to --min-mass threshold")
+        self.subparser.add_argument(
+            '-d', '--differences', type=int, default=1, metavar='N',
+            help='value for "swarm -d" [default %(default)s]')
+        self.subparser.add_argument(
+            '-M', '--min-mass', type=int, default=None, metavar='N',
+            help="drop OTUs with total mass less than N")
+        self.subparser.add_argument(
+            '-k', '--keep-abundance', action='store_true', default=False,
+            help="keep abundance annotation in seed names")
 
     def action(self, args):
-        print(args)
+
+        # identifies specimen of origin (values) for each read (keys)
+        specimen_map = dict(csv.reader(args.specimen_map))
+
+        if args.abundances:
+            writer = csv.writer(args.abundances)
+
+        with ntf(prefix='clusters-', suffix='.txt', dir=args.tmpdir) as clusters, \
+             ntf(prefix='seeds-', suffix='.fasta', dir=args.tmpdir) as seeds:
+
+            cluster(args.seqs, seeds, clusters, differences=args.differences,
+                    threads=args.threads)
+
+            grand_total, keep_total = 0.0, 0.0
+            for seq, line in zip(fastalite(seeds), clusters):
+                otu_rep, total = get_abundance(seq.id)
+                names_and_counts = list(map(get_abundance, line.split()))
+
+                assert otu_rep == names_and_counts[0][0]
+                assert total == sum(x[1] for x in names_and_counts)
+
+                grand_total += total
+
+                if args.min_mass is not None and total < args.min_mass:
+                    if args.dropped:
+                        args.dropped.write(as_fasta(seq))
+                    continue
+
+                keep_total += total
+
+                # write the OTU seed
+                if not args.keep_abundance:
+                    seq = rm_abundance(seq)
+                args.seeds.write(as_fasta(seq))
+
+                if not args.abundances:
+                    continue
+
+                # associate each specimen with a list of read names and masses
+                specimens = defaultdict(list)
+                for name, count in names_and_counts:
+                    specimens[specimen_map[name]].append((name, count))
+
+                # start with the specimen corresponding to the OTU representative
+                specimen = specimen_map[otu_rep]
+                names, counts = list(zip(*specimens.pop(specimen)))
+                writer.writerow([otu_rep, otu_rep, sum(counts)])
+
+                # ... then iterate over other specimens with reads in this OTU
+                for specimen, val in specimens.items():
+                    names, counts = list(zip(*val))
+                    writer.writerow([otu_rep, names[0], sum(counts)])
+
+        print('total yield:', round(100.0 * keep_total/grand_total, 2))
 
 
 class Dereplicate(Subparser):
-    """Pre-process (remove sequences with ambiguities and add abundance
-    annotation), dereplicate, and cluster sequences in fasta
-    format. If a specimen_map is provided, reads from each specimen
-    will be dereplicated individually.
+    """
+    Perform strict dereplication.
+
+    Remove sequences with ambiguities, add abundance annotation, and
+    dereplicate with ``swarm -d 0``. If a specimen_map is provided,
+    reads from each specimen will be dereplicated individually.
 
     """
 
@@ -252,10 +349,11 @@ class Dereplicate(Subparser):
         self.subparser.add_argument(
             'seqs', type=Opener('r'), help="sequences in fasta format")
         self.subparser.add_argument(
-            '-m', '--specimen-map', type=Opener('r'),
+            '-m', '--specimen-map', type=Opener('r'), metavar='INFILE',
             help="csv file with columns (read_name, specimen)")
         self.subparser.add_argument(
-            '-w', '--seeds', type=Opener('w'), help="output seed sequences in fasta format")
+            '-w', '--seeds', type=Opener('w'), metavar='OUTFILE',
+            help="output seed sequences in fasta format")
 
     def action(self, args):
         seqs = fastalite(args.seqs)
@@ -289,8 +387,7 @@ class Dereplicate(Subparser):
                 dereplicate(infile, d0, threads=args.threads)
 
                 # concatenate to pooled file
-                cmd = 'cat "{}" >> "{}"'.format(d0.name, args.seeds.name)
-                subprocess.check_call(cmd, shell=True)
+                args.seeds.write(d0.read())
 
 
 def main(arguments=None):
@@ -316,11 +413,14 @@ def main(arguments=None):
         '--tmpdir', help="""optional directory name for creating
         temporary intermediate files (created in system temp file and
         discarded by default)""")
-    parser.add_argument('-t', '--threads', default=4, type=int)
+    parser.add_argument(
+        '-t', '--threads', default=4, type=int, metavar='N',
+        help='number of threads [%(default)s]')
+
 
     subparsers = parser.add_subparsers()
-    Nothing(subparsers, name='do-nothing')
     Dereplicate(subparsers, name='dereplicate')
+    Cluster(subparsers, name='cluster')
 
     args = parser.parse_args(arguments)
 
