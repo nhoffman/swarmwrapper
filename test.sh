@@ -74,11 +74,11 @@ if run_test $testname "$@"; then
 		      dereplicate \
 		      testfiles/seqs.fasta \
 		      --specimen-map testfiles/seq_info.csv \
-		      --seeds $outdir/d0.fasta
+		      --seeds $outdir/d0.fasta.gz
 
     ./swarmwrapper.py $verbose $tmpdir \
 		      cluster \
-		      $outdir/d0.fasta \
+		      $outdir/d0.fasta.gz \
 		      --specimen-map testfiles/seq_info.csv \
 		      --seeds $outdir/seeds.fasta.gz \
 		      --abundances $outdir/weights.csv

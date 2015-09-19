@@ -212,7 +212,7 @@ def cluster(infile, seeds, clusters, differences=1, threads=1, quiet=True):
                '-o', clusters.name,
                '--differences', str(differences),
                '-t', str(threads),
-               infile]
+               infile.name]
 
         log.info(' '.join(cmd))
         subprocess.check_call(cmd, stderr=devnull if quiet else None)
@@ -260,7 +260,8 @@ class Cluster(Subparser):
 
     def add_arguments(self):
         self.subparser.add_argument(
-            'seqs', help="input sequences in fasta format "
+            'seqs', type=Opener('r'),
+            help="input sequences in fasta format "
             "(dereplicated and with abundance annotations)")
         self.subparser.add_argument(
             '-m', '--specimen-map', type=Opener('r'), metavar='INFILE',
@@ -292,10 +293,16 @@ class Cluster(Subparser):
         if args.abundances:
             writer = csv.writer(args.abundances)
 
-        with ntf(prefix='clusters-', suffix='.txt', dir=args.tmpdir) as clusters, \
+        with ntf(prefix='infile-', suffix='.fasta', dir=args.tmpdir) as infile, \
+             ntf(prefix='clusters-', suffix='.txt', dir=args.tmpdir) as clusters, \
              ntf(prefix='seeds-', suffix='.fasta', dir=args.tmpdir) as seeds:
 
-            cluster(args.seqs, seeds, clusters, differences=args.differences,
+            # copy contents of args.seqs to infile before running
+            # swarm to handle compressed files
+            infile.write(args.seqs.read())
+            infile.flush()
+
+            cluster(infile, seeds, clusters, differences=args.differences,
                     threads=args.threads, quiet=args.verbosity <= 1)
 
             grand_total, keep_total = 0.0, 0.0
