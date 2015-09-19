@@ -4,6 +4,14 @@
 (https://github.com/torognes/swarm), producing output suitable for
 subsequent analysis by pplacer.
 
+Why a wrapper for a perfectly nice program like swarm?
+
+* mostly, for compatibility with pplacer-style abundance annotation
+  with pooled specimens
+* adds abundance annotation to raw reads
+* drops reads with ambiguities
+* reads and writes compressed sequence and data files
+
 Input sequence names should *not* contain abundance annotations (these
 are added before the sequences are provided to swarm). Output sequence
 names are unannotated as well. Input files may be compressed
