@@ -397,6 +397,9 @@ class Dereplicate(Subparser):
                 # concatenate to pooled file
                 args.seeds.write(d0.read())
 
+                if not args.tmpdir:
+                    os.remove(infile.name)
+
 
 def main(arguments=None):
 
