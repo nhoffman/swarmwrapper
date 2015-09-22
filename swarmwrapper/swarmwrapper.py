@@ -315,6 +315,9 @@ class Cluster(Subparser):
             '--dropped', type=Opener('w'), metavar='OUTFILE',
             help="sequences discarded due to --min-mass threshold")
         self.subparser.add_argument(
+            '-D', '--dereplicate', action='store_true', default=False,
+            help='dereplicate before clustering')
+        self.subparser.add_argument(
             '-d', '--differences', type=int, default=1, metavar='N',
             help='value for "swarm -d" [default %(default)s]')
         self.subparser.add_argument(
@@ -336,11 +339,18 @@ class Cluster(Subparser):
              ntf(prefix='clusters-', suffix='.txt', dir=args.tmpdir) as clusters, \
              ntf(prefix='seeds-', suffix='.fasta', dir=args.tmpdir) as seeds:
 
-            # copy contents of args.seqs to infile before running
-            # swarm to handle compressed files
-            infile.write(args.seqs.read())
-            infile.flush()
+            if args.dereplicate:
+                seqs = ifilter(fiter_ambiguities, fastalite(args.seqs))
+                dereplicate_and_pool(
+                    seqs, specimen_map, infile, tmpdir=args.tmpdir,
+                    threads=args.threads, quiet=args.verbosity <= 1)
+            else:
+                # copy contents of args.seqs to infile before running
+                # swarm to handle compressed files
+                infile.write(args.seqs.read())
 
+            # cluster
+            infile.flush()
             swarm(infile, seeds, clusters, differences=args.differences,
                   threads=args.threads, quiet=args.verbosity <= 1)
 

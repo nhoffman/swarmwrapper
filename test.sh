@@ -123,3 +123,32 @@ if run_test $testname "$@"; then
 		      --dropped $outdir/dropped.fasta \
 		      --keep-abundance
 fi
+
+testname=cluster5
+if run_test $testname "$@"; then
+    outdir=$(setup $testname)
+    tmpdir="--tmpdir $outdir/tmp"
+    ./swarmwrapper.py $verbose $tmpdir \
+		      cluster \
+		      testfiles/seqs.fasta \
+		      --specimen-map testfiles/seq_info.csv \
+		      --seeds $outdir/seeds.fasta \
+		      --abundances $outdir/weights.csv \
+		      --dereplicate
+fi
+
+testname=cluster6
+if run_test $testname "$@"; then
+    outdir=$(setup $testname)
+    tmpdir="--tmpdir $outdir/tmp"
+    ./swarmwrapper.py $verbose $tmpdir \
+		      cluster \
+		      testfiles/seqs.fasta \
+		      --specimen-map testfiles/seq_info.csv \
+		      --seeds $outdir/seeds.fasta \
+		      --abundances $outdir/weights.csv \
+		      --dereplicate \
+		      --min-mass 2 \
+		      --dropped $outdir/dropped.fasta \
+		      --keep-abundance
+fi
