@@ -88,6 +88,8 @@ except Exception, e:
 
 log = logging
 
+SWARM_VERSION = '2.1.4'
+
 
 def mkdir(pth):
     try:
@@ -294,7 +296,7 @@ class Cluster(Subparser):
             help="keep abundance annotation in seed names")
 
     def action(self, args):
-
+        check_swarm_version(SWARM_VERSION)
         # identifies specimen of origin (values) for each read (keys)
         specimen_map = dict(csv.reader(args.specimen_map))
 
@@ -377,6 +379,7 @@ class Dereplicate(Subparser):
             help="output seed sequences in fasta format")
 
     def action(self, args):
+        check_swarm_version(SWARM_VERSION)
         seqs = fastalite(args.seqs)
         seqs = ifilter(fiter_ambiguities, seqs)
 
