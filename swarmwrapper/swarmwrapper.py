@@ -259,21 +259,6 @@ def dereplicate_and_pool(seqs, specimen_map, seeds, tmpdir=None,
                 os.remove(infile.name)
 
 
-def cluster(infile, seeds, clusters, differences=1, threads=1, quiet=True):
-    with open(os.devnull, 'w') as devnull:
-        cmd = ['swarm',
-               '--seeds', seeds.name,
-               '-o', clusters.name,
-               '--differences', str(differences),
-               '-t', str(threads),
-               infile.name]
-
-        log.info(' '.join(cmd))
-        subprocess.check_call(cmd, stderr=devnull if quiet else None)
-        clusters.seek(0)
-        seeds.seek(0)
-
-
 def ntf(*args, **kwargs):
     tmpdir = kwargs.get('dir')
     kwargs['delete'] = kwargs['delete'] if 'delete' in kwargs else (tmpdir is None)
@@ -356,8 +341,8 @@ class Cluster(Subparser):
             infile.write(args.seqs.read())
             infile.flush()
 
-            cluster(infile, seeds, clusters, differences=args.differences,
-                    threads=args.threads, quiet=args.verbosity <= 1)
+            swarm(infile, seeds, clusters, differences=args.differences,
+                  threads=args.threads, quiet=args.verbosity <= 1)
 
             grand_total, keep_total = 0.0, 0.0
             for seq, line in zip(fastalite(seeds), clusters):
@@ -399,7 +384,7 @@ class Cluster(Subparser):
                     names, counts = list(zip(*val))
                     writer.writerow([otu_rep, names[0], sum(counts)])
 
-        print('total yield:', round(100.0 * keep_total/grand_total, 2))
+        log.warning('total yield: {}'.format(round(100.0 * keep_total/grand_total, 2)))
 
 
 class Dereplicate(Subparser):
@@ -463,7 +448,6 @@ def main(arguments=None):
     parser.add_argument(
         '-t', '--threads', default=4, type=int, metavar='N',
         help='number of threads [%(default)s]')
-
 
     subparsers = parser.add_subparsers()
     Dereplicate(subparsers, name='dereplicate')
