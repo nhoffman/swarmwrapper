@@ -201,18 +201,62 @@ def as_fasta(seq):
     return '>{}\n{}\n'.format(seq.id, seq.seq)
 
 
-def dereplicate(infile, seeds, threads=1, quiet=True):
+def swarm(infile, seeds, clusters=None, differences=0, threads=1, quiet=True):
     with open(os.devnull, 'w') as devnull:
         cmd = ['swarm',
                '--seeds', seeds.name,
-               '-o', devnull.name,  # ordinarily to stdout, but we don't want it
-               '--differences', '0',
+               '-o', clusters.name if clusters else os.devnull,
+               '--differences', str(differences),
                '-t', str(threads),
                infile.name]
 
         log.info(' '.join(cmd))
         subprocess.check_call(cmd, stderr=devnull if quiet else None)
-        seeds.seek(0)
+
+
+def dereplicate(seqs, seeds, tmpdir=None, threads=1, quiet=True):
+    """Given iterator of sequences ``seqs``, write dereplicated reads in
+    fasta format to open file ``seeds``.
+
+    """
+
+    seqs = imap(add_abundance, seqs)
+    with ntf('w', prefix='raw-', suffix='.fasta', dir=tmpdir) as raw, \
+         ntf('rwb', prefix='d0-', suffix='.fasta', dir=tmpdir) as d0:
+        write_seqs(raw, seqs)
+        swarm(raw, d0, differences=0, threads=threads, quiet=quiet)
+        seeds.write(d0.read())
+
+
+def dereplicate_and_pool(seqs, specimen_map, seeds, tmpdir=None,
+                         threads=1, quiet=True):
+    """Given iterator of sequences ``seqs``, and dict ``specimen_map``
+    (providing the mapping {read: specimen}), write dereplicated reads
+    in fasta format to open file ``seeds``.
+
+    """
+
+    # Create an open file for each specimen. For each read, write a
+    # sequences annotated with _1 (abundance = 1) if there are no
+    # ambiguities.
+    raw_reads = {specimen: ntf('w', prefix='{}-'.format(specimen),
+                               suffix='.fasta', dir=tmpdir, delete=False)
+                 for specimen in set(specimen_map.values())}
+
+    for seq in seqs:
+        raw_reads[specimen_map[seq.id]].write(as_fasta(add_abundance(seq)))
+
+    # dereplicate each specimen and concatenate all remaining reads
+    for specimen, infile in list(raw_reads.items()):
+        with ntf(prefix='d0-', suffix='.fasta', dir=tmpdir) as d0:
+            infile.close()  # flush any pending writes from above
+            swarm(infile, d0, differences=0, threads=threads, quiet=quiet)
+
+            # concatenate to pooled file
+            seeds.write(d0.read())
+
+            if not tmpdir:
+                os.remove(infile.name)
 
 
 def cluster(infile, seeds, clusters, differences=1, threads=1, quiet=True):
@@ -232,7 +276,7 @@ def cluster(infile, seeds, clusters, differences=1, threads=1, quiet=True):
 
 def ntf(*args, **kwargs):
     tmpdir = kwargs.get('dir')
-    kwargs['delete'] = kwargs['delete'] if 'delete' in kwargs else tmpdir is None
+    kwargs['delete'] = kwargs['delete'] if 'delete' in kwargs else (tmpdir is None)
 
     if tmpdir is not None:
         try:
@@ -383,40 +427,14 @@ class Dereplicate(Subparser):
         seqs = fastalite(args.seqs)
         seqs = ifilter(fiter_ambiguities, seqs)
 
-        if not args.specimen_map:
-            log.info('dereplicating {}'.format(args.seqs.name))
-            seqs = imap(add_abundance, seqs)
-            with ntf('w', prefix='raw-', suffix='.fasta', dir=args.tmpdir) as raw, \
-                 ntf('rwb', prefix='d0-', suffix='.fasta', dir=args.tmpdir) as d0:
-                write_seqs(raw, seqs)
-                dereplicate(raw, d0, threads=args.threads, quiet=args.verbosity <= 1)
-                args.seeds.write(d0.read())
-            return
-
-        # identifies specimen of origin (values) for each read (keys)
-        specimen_map = dict(csv.reader(args.specimen_map))
-
-        # Create an open file for each specimen. For each read, write a
-        # sequences annotated with _1 (abundance = 1) if there are no
-        # ambiguities.
-        raw_reads = {specimen: ntf('w', prefix='{}-'.format(specimen),
-                                   suffix='.fasta', dir=args.tmpdir, delete=False)
-                     for specimen in set(specimen_map.values())}
-
-        for seq in seqs:
-            raw_reads[specimen_map[seq.id]].write(as_fasta(add_abundance(seq)))
-
-        # dereplicate each specimen and concatenate all remaining reads
-        for specimen, infile in list(raw_reads.items()):
-            with ntf(prefix='d0-', suffix='.fasta', dir=args.tmpdir) as d0:
-                infile.close()  # flush any pending writes from above
-                dereplicate(infile, d0, threads=args.threads)
-
-                # concatenate to pooled file
-                args.seeds.write(d0.read())
-
-                if not args.tmpdir:
-                    os.remove(infile.name)
+        if args.specimen_map:
+            # identifies specimen of origin (values) for each read (keys)
+            specimen_map = dict(csv.reader(args.specimen_map))
+            dereplicate_and_pool(seqs, specimen_map, args.seeds, tmpdir=args.tmpdir,
+                                 threads=args.threads, quiet=args.verbosity <= 1)
+        else:
+            dereplicate(seqs, args.seeds, tmpdir=args.tmpdir,
+                        threads=args.threads, quiet=args.verbosity <= 1)
 
 
 def main(arguments=None):
