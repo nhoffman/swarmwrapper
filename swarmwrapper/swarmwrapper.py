@@ -74,6 +74,8 @@ import os
 import subprocess
 import sys
 import logging
+import urllib2
+import stat
 try:
     from bz2 import BZ2File
 except ImportError, err:
@@ -147,17 +149,23 @@ def fastalite(handle):
         yield Seq(header.split()[0], header, ''.join(seq))
 
 
-def check_swarm_version(min_version):
-    try:
-        subprocess.check_output(['which', 'swarm'])
-    except subprocess.CalledProcessError:
-        sys.exit('Error: no swarm executable found')
+def check_swarm_version(min_version, swarm=None):
+    if swarm is None:
+        try:
+            swarm = subprocess.check_output(['which', 'swarm']).strip()
+        except subprocess.CalledProcessError:
+            sys.exit('Error: no swarm executable found')
 
-    output = subprocess.check_output('swarm -v 2>&1; true', shell=True)
+    output = subprocess.check_output('"{}" -v 2>&1; true'.format(swarm), shell=True)
     version = output.split()[1].decode(encoding='UTF-8')
-    if LooseVersion(version) < LooseVersion(min_version):
-        sys.exit('Error: swarm version >= {} is required, '
-                 'found swarm version {}'.format(min_version, version))
+    version_ok = LooseVersion(version) >= LooseVersion(min_version)
+    if version_ok:
+        log.info('{} version {}'.format(swarm, version))
+    else:
+        log.error('Error: swarm version >= {} is required, '
+                  'found {} version {}'.format(min_version, swarm, version))
+
+    return version_ok
 
 
 def add_abundance(seq, abundance=1):
@@ -315,7 +323,9 @@ class Cluster(Subparser):
             help="keep abundance annotation in seed names")
 
     def action(self, args):
-        check_swarm_version(SWARM_VERSION)
+        if not check_swarm_version(SWARM_VERSION):
+            sys.exit(1)
+
         # identifies specimen of origin (values) for each read (keys)
         specimen_map = dict(csv.reader(args.specimen_map))
 
@@ -405,7 +415,8 @@ class Dereplicate(Subparser):
             help="output seed sequences in fasta format")
 
     def action(self, args):
-        check_swarm_version(SWARM_VERSION)
+        if not check_swarm_version(SWARM_VERSION):
+            sys.exit(1)
         seqs = fastalite(args.seqs)
         seqs = ifilter(fiter_ambiguities, seqs)
 
@@ -417,6 +428,38 @@ class Dereplicate(Subparser):
         else:
             dereplicate(seqs, args.seeds, tmpdir=args.tmpdir,
                         threads=args.threads, quiet=args.verbosity <= 1)
+
+
+class Install(Subparser):
+    """
+    Install swarm binaries (linux only for now)
+
+    """
+
+    def add_arguments(self):
+        self.subparser.add_argument(
+            '--path', default='./swarm',
+            help='install swarm to PATH [default "%(default)s]"')
+        self.subparser.add_argument(
+            '--version', default=SWARM_VERSION,
+            help='swarm version [default %(default)s]')
+        self.subparser.add_argument(
+            '--force', action='store_true', default=False,
+            help='redownload even if the binary exists')
+
+    def action(self, args):
+        url = ('http://github.com/torognes/swarm/releases/download/'
+               'v{version}/swarm-{version}-linux-x86_64').format(version=args.version)
+        dest = args.path
+        version_ok = check_swarm_version(args.version, swarm=dest)
+        if not version_ok or args.force:
+            log.info('downloading {} to {}'.format(url, dest))
+            with open(dest, 'w') as binary:
+                handle = urllib2.urlopen(url)
+                binary.write(handle.read())
+            os.chmod(dest, stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+            # confirm installation
+            check_swarm_version(args.version, swarm=dest)
 
 
 def main(arguments=None):
@@ -449,6 +492,7 @@ def main(arguments=None):
     subparsers = parser.add_subparsers()
     Dereplicate(subparsers, name='dereplicate')
     Cluster(subparsers, name='cluster')
+    Install(subparsers, name='install')
 
     args = parser.parse_args(arguments)
 
