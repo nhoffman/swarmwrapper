@@ -75,10 +75,9 @@ import subprocess
 import sys
 import logging
 try:
-    import bz2
-except ImportError:
-    bz2 = None
-
+    from bz2 import BZ2File
+except ImportError, err:
+    BZ2File = lambda x, *args, **kwargs: sys.exit(err)
 
 try:
     with open(path.join(path.dirname(__file__), 'data', 'ver')) as f:
@@ -101,63 +100,51 @@ def mkdir(pth):
 
 
 class Opener(object):
+    """Factory for creating file objects. Transparenty opens compressed
+    files for reading or writing based on suffix (.gz and .bz2 only).
 
-    """Factory for creating file objects
+    Example::
 
-    Keyword Arguments:
-        - mode -- A string indicating how the file is to be opened. Accepts the
-            same values as the builtin open() function.
-        - bufsize -- The file's desired buffer size. Accepts the same values as
-            the builtin open() function.
+        with Opener()('in.txt') as infile, Opener('w')('out.gz') as outfile:
+            outfile.write(infile.read())
     """
 
-    def __init__(self, mode='r', bufsize=-1):
-        self._mode = mode
-        self._bufsize = bufsize
+    def __init__(self, *args, **kwargs):
+        self.args = args
+        self.kwargs = kwargs
+        self.writable = 'w' in kwargs.get('mode', args[0] if args else 'r')
 
-    def __call__(self, string):
-        if string is sys.stdout or string is sys.stdin:
-            return string
-        elif string == '-':
-            return sys.stdin if 'r' in self._mode else sys.stdout
-        elif string.endswith('.bz2'):
-            if bz2 is None:
-                raise ImportError(
-                    'could not import bz2 module - was python built with libbz2?')
-            return bz2.BZ2File(
-                string, self._mode, self._bufsize)
-        elif string.endswith('.gz'):
-            return gzip.open(
-                string, self._mode, self._bufsize)
+    def __call__(self, obj):
+        if obj is sys.stdout or obj is sys.stdin:
+            return obj
+        elif obj == '-':
+            return sys.stdout if self.writable else sys.stdin
         else:
-            return open(string, self._mode, self._bufsize)
+            __, suffix = obj.rsplit('.', 1)
+            opener = {'bz2': BZ2File,
+                      'gz': gzip.open}.get(suffix, open)
+            return opener(obj, *self.args, **self.kwargs)
 
-    def __repr__(self):
-        args = self._mode, self._bufsize
-        args_str = ', '.join(repr(arg) for arg in args if arg != -1)
-        return '{}({})'.format(type(self).__name__, args_str)
-
-
-SeqLite = namedtuple('SeqLite', 'id, description, seq')
+Seq = namedtuple('Seq', 'id, description, seq')
 
 
 def fastalite(handle):
-    """
-    Lightweight fasta parser. Returns iterator of namedtuple instances
-    with fields (id, description, seq) given file-like object ``handle``.
+    """Return a sequence of namedtuple objects with attributes (id,
+    description, seq) given open file-like object ``handle``
+
     """
 
-    name, seq = '', ''
+    header, seq = '', []
     for line in handle:
         if line.startswith('>'):
-            if name:
-                yield SeqLite(name.split()[0], name, seq)
-            name, seq = line[1:].strip(), ''
+            if header:
+                yield Seq(header.split()[0], header, ''.join(seq))
+            header, seq = line[1:].strip(), []
         else:
-            seq += line.strip()
+            seq.append(line.strip())
 
-    if name and seq:
-        yield SeqLite(name.split()[0], name, seq)
+    if header and seq:
+        yield Seq(header.split()[0], header, ''.join(seq))
 
 
 def check_swarm_version(min_version):
@@ -174,12 +161,12 @@ def check_swarm_version(min_version):
 
 
 def add_abundance(seq, abundance=1):
-    return SeqLite('{}_{}'.format(seq.id, abundance), seq.description, seq.seq)
+    return Seq('{}_{}'.format(seq.id, abundance), seq.description, seq.seq)
 
 
 def rm_abundance(seq):
     name, __ = get_abundance(seq.id)
-    return SeqLite(name, seq.description, seq.seq)
+    return Seq(name, seq.description, seq.seq)
 
 
 def get_abundance(name):
