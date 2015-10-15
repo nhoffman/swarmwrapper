@@ -317,7 +317,7 @@ class Cluster(Subparser):
             help='value for "swarm -d" [default %(default)s]')
         self.subparser.add_argument(
             '-M', '--min-mass', type=int, default=None, metavar='N',
-            help="drop OTUs with total mass less than N")
+            help="drop OTUs with total mass less than N [default 1, ie, no dropping]")
         self.subparser.add_argument(
             '-k', '--keep-abundance', action='store_true', default=False,
             help="keep abundance annotation in seed names")
@@ -327,7 +327,10 @@ class Cluster(Subparser):
             sys.exit(1)
 
         # identifies specimen of origin (values) for each read (keys)
-        specimen_map = dict(csv.reader(args.specimen_map))
+        if args.specimen_map:
+            specimen_map = dict(csv.reader(args.specimen_map))
+        else:
+            specimen_map = defaultdict(lambda: 'specimen')
 
         if args.abundances:
             writer = csv.writer(args.abundances)
@@ -338,9 +341,14 @@ class Cluster(Subparser):
 
             if args.dereplicate:
                 seqs = ifilter(fiter_ambiguities, fastalite(args.seqs))
-                dereplicate_and_pool(
-                    seqs, specimen_map, infile, tmpdir=args.tmpdir,
-                    threads=args.threads, quiet=args.verbosity <= 1)
+                if args.specimen_map:
+                    dereplicate_and_pool(
+                        seqs, specimen_map, infile, tmpdir=args.tmpdir,
+                        threads=args.threads, quiet=args.verbosity <= 1)
+                else:
+                    dereplicate(
+                        seqs, infile, tmpdir=args.tmpdir,
+                        threads=args.threads, quiet=args.verbosity <= 1)
             else:
                 # copy contents of args.seqs to infile before running
                 # swarm to handle compressed files

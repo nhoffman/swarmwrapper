@@ -152,3 +152,29 @@ if run_test $testname "$@"; then
 		      --dropped $outdir/dropped.fasta \
 		      --keep-abundance
 fi
+
+# cluster without specimen_map
+testname=cluster7
+if run_test $testname "$@"; then
+    outdir=$(setup $testname)
+    tmpdir="--tmpdir $outdir/tmp"
+    ./swarmwrapper.py $verbose $tmpdir \
+		      cluster \
+		      testfiles/seqs.fasta \
+		      --seeds $outdir/seeds.fasta \
+		      --abundances $outdir/weights.csv \
+		      --dereplicate \
+		      --dropped $outdir/dropped.fasta
+fi
+
+# cluster without specimen_map, don't write abundances
+testname=cluster8
+if run_test $testname "$@"; then
+    outdir=$(setup $testname)
+    tmpdir="--tmpdir $outdir/tmp"
+    ./swarmwrapper.py $verbose $tmpdir \
+		      cluster \
+		      testfiles/seqs.fasta \
+		      --seeds $outdir/seeds.fasta \
+		      --dereplicate
+fi
