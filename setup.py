@@ -14,7 +14,7 @@ from swarmwrapper.swarmwrapper import __version__
 setup(
     author='Noah Hoffman',
     author_email='noah.hoffman@gmail.com',
-    description='Wrapper for virtualenv, pip, and wheel',
+    description='wrapper for using swarm with pplacer',
     url='https://github.com/nhoffman/swarmwrapper',
     name='swarmwrapper',
     packages=find_packages(),
