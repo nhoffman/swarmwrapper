@@ -362,13 +362,6 @@ class Cluster(Subparser):
             grand_total, keep_total = 0.0, 0.0
             for seq, line in zip(fastalite(seeds), clusters):
                 otu_rep, total = get_abundance(seq.id)
-                names_and_counts = list(map(get_abundance, line.split()))
-
-                print(otu_rep)
-                print(names_and_counts[0][0])
-                assert otu_rep == names_and_counts[0][0]
-                assert total == sum(x[1] for x in names_and_counts)
-
                 grand_total += total
 
                 if args.min_mass is not None and total < args.min_mass:
@@ -381,10 +374,15 @@ class Cluster(Subparser):
                 # write the OTU seed
                 if not args.keep_abundance:
                     seq = rm_abundance(seq)
+
                 args.seeds.write(as_fasta(seq))
 
                 if not args.abundances:
                     continue
+
+                names_and_counts = list(map(get_abundance, line.split()))
+                assert otu_rep == names_and_counts[0][0]
+                assert total == sum(x[1] for x in names_and_counts)
 
                 # associate each specimen with a list of read names and masses
                 specimens = defaultdict(list)

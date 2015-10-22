@@ -191,3 +191,18 @@ if run_test $testname "$@"; then
 		      --dereplicate \
 		      -d 2
 fi
+
+# cluster without specimen_map, d > 1, write abundances (fails with
+# swarm < 2.1.5, see https://github.com/torognes/swarm/issues/67)
+testname=cluster10
+if run_test $testname "$@"; then
+    outdir=$(setup $testname)
+    tmpdir="--tmpdir $outdir/tmp"
+    ./swarmwrapper.py $verbose $tmpdir \
+		      cluster \
+		      testfiles/seqs.fasta \
+		      --seeds $outdir/seeds.fasta \
+		      --abundances $outdir/weights.csv \
+		      --dereplicate \
+		      -d 2
+fi
