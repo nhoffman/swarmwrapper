@@ -75,7 +75,7 @@ import subprocess
 import sys
 import logging
 import urllib2
-import stat
+
 try:
     from bz2 import BZ2File
 except ImportError, err:
@@ -89,7 +89,7 @@ except Exception, e:
 
 log = logging
 
-SWARM_VERSION = '2.1.4'
+SWARM_VERSION = '2.1.5'
 
 
 def mkdir(pth):
@@ -364,6 +364,8 @@ class Cluster(Subparser):
                 otu_rep, total = get_abundance(seq.id)
                 names_and_counts = list(map(get_abundance, line.split()))
 
+                print(otu_rep)
+                print(names_and_counts[0][0])
                 assert otu_rep == names_and_counts[0][0]
                 assert total == sum(x[1] for x in names_and_counts)
 
@@ -465,7 +467,7 @@ class Install(Subparser):
             with open(dest, 'w') as binary:
                 handle = urllib2.urlopen(url)
                 binary.write(handle.read())
-            os.chmod(dest, stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+            os.chmod(dest, 0755)
             # confirm installation
             check_swarm_version(args.version, swarm=dest)
 
