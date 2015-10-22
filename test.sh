@@ -178,3 +178,16 @@ if run_test $testname "$@"; then
 		      --seeds $outdir/seeds.fasta \
 		      --dereplicate
 fi
+
+# cluster without specimen_map, d > 1
+testname=cluster9
+if run_test $testname "$@"; then
+    outdir=$(setup $testname)
+    tmpdir="--tmpdir $outdir/tmp"
+    ./swarmwrapper.py $verbose $tmpdir \
+		      cluster \
+		      testfiles/seqs.fasta \
+		      --seeds $outdir/seeds.fasta \
+		      --dereplicate \
+		      -d 2
+fi
