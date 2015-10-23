@@ -10,6 +10,7 @@ Why a wrapper for a perfectly nice program like swarm?
   with pooled specimens
 * adds abundance annotation to raw reads
 * drops reads with ambiguities
+* optionally drops OTUs with a mass below some threshold
 * reads and writes compressed sequence and data files
 
 Input sequence names should *not* contain abundance annotations (these
