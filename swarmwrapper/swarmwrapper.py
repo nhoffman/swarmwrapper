@@ -156,9 +156,17 @@ def check_swarm_version(min_version, swarm=None):
             swarm = subprocess.check_output(['which', 'swarm']).strip()
         except subprocess.CalledProcessError:
             sys.exit('Error: no swarm executable found')
+    else:
+        swarm = path.abspath(swarm)
 
+    # swarm -v always returns non-zero exit status
     output = subprocess.check_output('"{}" -v 2>&1; true'.format(swarm), shell=True)
-    version = output.split()[1].decode(encoding='UTF-8')
+    if output.lower().startswith('swarm'):
+        version = output.split()[1].decode(encoding='UTF-8')
+    else:
+        log.info('No swarm executable at path "{}"'.format(swarm))
+        return False
+
     version_ok = LooseVersion(version) >= LooseVersion(min_version)
     if version_ok:
         log.info('{} version {}'.format(swarm, version))
@@ -447,8 +455,11 @@ class Install(Subparser):
 
     def add_arguments(self):
         self.subparser.add_argument(
+            '--prefix',
+            help='install swarm to PREFIX/bin/swarm (destination directory must exist)')
+        self.subparser.add_argument(
             '--path', default='./swarm',
-            help='install swarm to PATH [default "%(default)s]"')
+            help='if no --prefix, install swarm to PATH [default "%(default)s]"')
         self.subparser.add_argument(
             '--version', default=SWARM_VERSION,
             help='swarm version [default %(default)s]')
@@ -459,7 +470,7 @@ class Install(Subparser):
     def action(self, args):
         url = ('http://github.com/torognes/swarm/releases/download/'
                'v{version}/swarm-{version}-linux-x86_64').format(version=args.version)
-        dest = args.path
+        dest = '{}/bin/swarm'.format(args.prefix) if args.prefix else args.path
         version_ok = check_swarm_version(args.version, swarm=dest)
         if not version_ok or args.force:
             log.info('downloading {} to {}'.format(url, dest))
