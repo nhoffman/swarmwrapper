@@ -2,12 +2,12 @@
 
 """Dereplicate, pool, and cluster reads using swarm
 (https://github.com/torognes/swarm), producing output suitable for
-subsequent analysis by pplacer.
+subsequent analysis by pplacer (http://matsen.github.io/pplacer/).
 
-Why a wrapper for a perfectly nice program like swarm?
+Why?
 
 * mostly, for compatibility with pplacer-style abundance annotation
-  with pooled specimens
+  for pooled specimens
 * adds abundance annotation to raw reads
 * drops reads with ambiguities
 * optionally drops OTUs with a mass below some threshold
@@ -76,6 +76,7 @@ import subprocess
 import sys
 import logging
 import urllib2
+import re
 
 try:
     from bz2 import BZ2File
@@ -192,7 +193,7 @@ def get_abundance(name):
 
 
 def fiter_ambiguities(seq):
-    return 'N' not in seq.seq
+    return not re.search(r'[^ACGT]', seq.seq, re.IGNORECASE)
 
 
 def write_seqs(fobj, seqs):

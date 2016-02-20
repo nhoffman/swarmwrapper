@@ -4,14 +4,15 @@
 
 Dereplicate, pool, and cluster reads using swarm
 (https://github.com/torognes/swarm), producing output suitable for
-subsequent analysis by pplacer.
+subsequent analysis by pplacer (http://matsen.github.io/pplacer/).
 
-Why a wrapper for a perfectly nice program like swarm?
+Why?
 
 * mostly, for compatibility with pplacer-style abundance annotation
-  with pooled specimens
+  for pooled specimens
 * adds abundance annotation to raw reads
 * drops reads with ambiguities
+* optionally drops OTUs with a mass below some threshold
 * reads and writes compressed sequence and data files
 
 Input sequence names should *not* contain abundance annotations (these
@@ -62,9 +63,10 @@ Command line options
 ::
 
   positional arguments:
-    {dereplicate,cluster}
+    {dereplicate,cluster,install}
       dereplicate         Perform strict dereplication.
       cluster             Cluster dereplicated reads.
+      install             Install swarm binaries (linux only for now)
 
   optional arguments:
     -h, --help            show this help message and exit
