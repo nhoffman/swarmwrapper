@@ -57,6 +57,18 @@ Given these three inputs, a taxon table can be constructed as follows
   join assignments using(seed)
   group by specimen, taxon;
 
+Installation
+============
+
+Recommended use is in a python virtualenv. Here's what I do to install
+both swarmwrapper and the linux swam binaries to a virtualenv::
+
+  virtualenv env
+  source env/bin/activate
+  pip install git+https://github.com/nhoffman/swarmwrapper.git
+  swarmwrapper install --prefix $VIRTUAL_ENV
+
+
 Command line options
 ====================
 
