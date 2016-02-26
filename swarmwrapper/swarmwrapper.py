@@ -114,6 +114,21 @@ def mkdir(pth):
     return path.abspath(pth)
 
 
+def ntf(*args, **kwargs):
+    """Return ``tempfile.NamedTemporaryFile`` instance, creating parent
+    directories if necessary. All arguments are passed to the
+    NamedTemporaryFile constructor.
+
+    """
+    tmpdir = kwargs.get('dir')
+    kwargs['delete'] = kwargs['delete'] if 'delete' in kwargs else (tmpdir is None)
+
+    if tmpdir is not None:
+        mkdir(tmpdir)
+
+    return NamedTemporaryFile(*args, **kwargs)
+
+
 class Opener(object):
     """Factory for creating file objects. Transparenty opens compressed
     files for reading or writing based on suffix (.gz and .bz2 only).
@@ -210,7 +225,8 @@ def fiter_ambiguities(seq):
 def write_seqs(fobj, seqs):
     for seq in seqs:
         fobj.write(as_fasta(seq))
-        fobj.flush()
+
+    fobj.flush()
 
 
 def as_fasta(seq):
@@ -273,19 +289,6 @@ def dereplicate_and_pool(seqs, specimen_map, seeds, tmpdir=None,
 
             if not tmpdir:
                 os.remove(infile.name)
-
-
-def ntf(*args, **kwargs):
-    tmpdir = kwargs.get('dir')
-    kwargs['delete'] = kwargs['delete'] if 'delete' in kwargs else (tmpdir is None)
-
-    if tmpdir is not None:
-        try:
-            os.makedirs(tmpdir)
-        except OSError:
-            pass
-
-    return NamedTemporaryFile(*args, **kwargs)
 
 
 class VersionAction(argparse._VersionAction):
