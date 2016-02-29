@@ -150,7 +150,10 @@ class Opener(object):
         elif obj == '-':
             return sys.stdout if self.writable else sys.stdin
         else:
-            __, suffix = obj.rsplit('.', 1)
+            try:
+                __, suffix = obj.rsplit('.', 1)
+            except ValueError:
+                suffix = None
             opener = {'bz2': BZ2File,
                       'gz': gzip.open}.get(suffix, open)
             return opener(obj, *self.args, **self.kwargs)
