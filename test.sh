@@ -200,7 +200,7 @@ if run_test $testname "$@"; then
     tmpdir="--tmpdir $outdir/tmp"
     ./swarmwrapper.py $verbose $tmpdir \
 		      cluster \
-		      testfiles/seqs.fasta \
+		      testfiles/seqs1000.fasta \
 		      --seeds $outdir/seeds.fasta \
 		      --abundances $outdir/weights.csv \
 		      --dereplicate \
