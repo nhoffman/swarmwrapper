@@ -28,13 +28,15 @@ setup(){
 
 # verbose="-v"
 
+seqs=testfiles/seqs1000.fasta
+
 testname=derep1
 if run_test $testname "$@"; then
     outdir=$(setup $testname)
     # tmpdir="--tmpdir $outdir/tmp"
     ./swarmwrapper.py $verbose $tmpdir \
 		      dereplicate \
-		      testfiles/seqs.fasta \
+		      $seqs \
 		      --seeds $outdir/seeds.fasta.gz
 fi
 
@@ -44,7 +46,7 @@ if run_test $testname "$@"; then
     # tmpdir="--tmpdir $outdir/tmp"
     ./swarmwrapper.py $verbose $tmpdir \
 		      dereplicate \
-		      testfiles/seqs.fasta \
+		      $seqs \
 		      --specimen-map testfiles/seq_info.csv \
 		      --seeds $outdir/seeds.fasta.gz
 fi
@@ -55,7 +57,7 @@ if run_test $testname "$@"; then
     tmpdir="--tmpdir $outdir/tmp"
     ./swarmwrapper.py $verbose \
 		      dereplicate \
-		      testfiles/seqs.fasta \
+		      $seqs \
 		      --specimen-map testfiles/seq_info.csv \
 		      --seeds $outdir/d0.fasta
 
@@ -72,7 +74,7 @@ if run_test $testname "$@"; then
     tmpdir="--tmpdir $outdir/tmp"
     ./swarmwrapper.py $verbose \
 		      dereplicate \
-		      testfiles/seqs.fasta \
+		      $seqs \
 		      --specimen-map testfiles/seq_info.csv \
 		      --seeds $outdir/d0.fasta.gz
 
@@ -90,7 +92,7 @@ if run_test $testname "$@"; then
     tmpdir="--tmpdir $outdir/tmp"
     ./swarmwrapper.py $verbose \
 		      dereplicate \
-		      testfiles/seqs.fasta \
+		      $seqs \
 		      --specimen-map testfiles/seq_info.csv \
 		      --seeds $outdir/d0.fasta
 
@@ -109,7 +111,7 @@ if run_test $testname "$@"; then
     tmpdir="--tmpdir $outdir/tmp"
     ./swarmwrapper.py $verbose \
 		      dereplicate \
-		      testfiles/seqs.fasta \
+		      $seqs \
 		      --specimen-map testfiles/seq_info.csv \
 		      --seeds $outdir/d0.fasta
 
@@ -130,7 +132,7 @@ if run_test $testname "$@"; then
     tmpdir="--tmpdir $outdir/tmp"
     ./swarmwrapper.py $verbose $tmpdir \
 		      cluster \
-		      testfiles/seqs.fasta \
+		      $seqs \
 		      --specimen-map testfiles/seq_info.csv \
 		      --seeds $outdir/seeds.fasta \
 		      --abundances $outdir/weights.csv \
@@ -143,7 +145,7 @@ if run_test $testname "$@"; then
     tmpdir="--tmpdir $outdir/tmp"
     ./swarmwrapper.py $verbose $tmpdir \
 		      cluster \
-		      testfiles/seqs.fasta \
+		      $seqs \
 		      --specimen-map testfiles/seq_info.csv \
 		      --seeds $outdir/seeds.fasta \
 		      --abundances $outdir/weights.csv \
@@ -160,7 +162,7 @@ if run_test $testname "$@"; then
     tmpdir="--tmpdir $outdir/tmp"
     ./swarmwrapper.py $verbose $tmpdir \
 		      cluster \
-		      testfiles/seqs.fasta \
+		      $seqs \
 		      --seeds $outdir/seeds.fasta \
 		      --abundances $outdir/weights.csv \
 		      --dereplicate \
@@ -174,7 +176,7 @@ if run_test $testname "$@"; then
     tmpdir="--tmpdir $outdir/tmp"
     ./swarmwrapper.py $verbose $tmpdir \
 		      cluster \
-		      testfiles/seqs.fasta \
+		      $seqs \
 		      --seeds $outdir/seeds.fasta \
 		      --dereplicate
 fi
@@ -186,7 +188,7 @@ if run_test $testname "$@"; then
     tmpdir="--tmpdir $outdir/tmp"
     ./swarmwrapper.py $verbose $tmpdir \
 		      cluster \
-		      testfiles/seqs.fasta \
+		      $seqs \
 		      --seeds $outdir/seeds \
 		      --dereplicate \
 		      -d 2
@@ -200,7 +202,7 @@ if run_test $testname "$@"; then
     tmpdir="--tmpdir $outdir/tmp"
     ./swarmwrapper.py $verbose $tmpdir \
 		      cluster \
-		      testfiles/seqs1000.fasta \
+		      $seqs \
 		      --seeds $outdir/seeds.fasta \
 		      --abundances $outdir/weights.csv \
 		      --dereplicate \
