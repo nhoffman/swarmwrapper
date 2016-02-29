@@ -2,6 +2,9 @@
  swarmwrapper
 ==============
 
+.. image:: https://travis-ci.org/nhoffman/swarmwrapper.svg?branch=master
+   :target: https://travis-ci.org/nhoffman/swarmwrapper
+
 Dereplicate, pool, and cluster reads using swarm
 (https://github.com/torognes/swarm), producing output suitable for
 subsequent analysis by pplacer (http://matsen.github.io/pplacer/).
