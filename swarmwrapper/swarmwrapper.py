@@ -426,8 +426,10 @@ class Cluster(Subparser):
                     names, counts = list(zip(*val))
                     writer.writerow([otu_rep, names[0], sum(counts)])
 
-        log.warning('total yield: {}'.format(round(100.0 * keep_total/grand_total, 2)))
-
+        if grand_total:
+            log.warning('total yield: {}'.format(round(100.0 * keep_total/grand_total, 2)))
+        else:
+            log.error('No input sequences')
 
 class Dereplicate(Subparser):
     """
