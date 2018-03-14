@@ -102,7 +102,7 @@ except Exception, e:
 
 log = logging
 
-SWARM_VERSION = '2.1.7'
+SWARM_VERSION = '2.2.2'
 
 
 def mkdir(pth):
